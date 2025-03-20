@@ -122,5 +122,5 @@ final_qr.paste(logo, logo_position, mask=logo)
 # Save the final QR code
 final_qr.save("instaPy.png")
 
-print("✅ QR code with circular Instagram logo and user image saved as 'instaQR_with_user.png'.")
+print("✅ QR code with circular Instagram logo and user image saved as 'instaPy'.")
 final_qr.show()  # Display the QR code
