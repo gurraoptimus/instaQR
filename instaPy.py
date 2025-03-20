@@ -1,11 +1,14 @@
 import qrcode
 import numpy as np
 from PIL import Image, ImageDraw
+import requests
+from io import BytesIO
 
 # ============================
-# 🔗 Step 1: Instagram Profile URL
+# 🔗 Step 1: User Input for Instagram Profile URL
 # ============================
-instagram_username = "instagram"  # Change to user's username
+instagram_username = "username"
+#instagram_username = input("Enter your Instagram username: ")  # User can input their Instagram username
 instagram_url = f"https://www.instagram.com/{instagram_username}/"
 
 # ============================
@@ -84,10 +87,14 @@ logo.putalpha(circle_mask)
 # ============================
 # 📸 Step 5: Insert User Profile Picture (Inside the Circular Logo)
 # ============================
-user_img_path = "user_profile.jpg"  # Replace with actual image path
+user_img_url = f"https://static.cdninstagram.com/rsrc.php/v4/yI/r/VsNE-OHk_8a.png"  # User provides the URL
 
 try:
-    user_img = Image.open(user_img_path).convert("RGBA")
+    # Fetch the user image from the URL
+    response = requests.get(user_img_url)
+    user_img = Image.open(BytesIO(response.content)).convert("RGBA")
+    
+    # Resize the image
     user_img = user_img.resize((logo_size - 20, logo_size - 20), Image.LANCZOS)
 
     # Create a circular mask for the profile picture
@@ -102,8 +109,9 @@ try:
     user_img_position = ((logo_size - user_img.width) // 2, (logo_size - user_img.height) // 2)
     logo.paste(user_img, user_img_position, mask=user_img)
 
-except FileNotFoundError:
-    print("⚠️ User profile image not found! Using only Instagram logo.")
+except Exception as e:
+    print(f"⚠️ Error loading user profile image from URL: {e}")
+    print("Using only Instagram logo.")
 
 # ============================
 # 🖼️ Step 6: Overlay Circular Logo on QR Code
@@ -112,7 +120,7 @@ logo_position = ((qr_width - logo_size) // 2, (qr_height - logo_size) // 2)
 final_qr.paste(logo, logo_position, mask=logo)
 
 # Save the final QR code
-final_qr.save("instaQR.png")
+final_qr.save("instaPy.png")
 
-print("✅ QR code with circular Instagram logo and user image saved as 'instaQR.png'.")
+print("✅ QR code with circular Instagram logo and user image saved as 'instaQR_with_user.png'.")
 final_qr.show()  # Display the QR code
