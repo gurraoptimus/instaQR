@@ -2,14 +2,18 @@ import qrcode
 import numpy as np
 from PIL import Image, ImageDraw
 
-# Instagram profile URL
-instagram_username = "your_username"
+# ============================
+# 🔗 Step 1: Instagram Profile URL
+# ============================
+instagram_username = "instagram"  # Change to user's username
 instagram_url = f"https://www.instagram.com/{instagram_username}/"
 
-# Create QR code
+# ============================
+# 📸 Step 2: Create QR Code
+# ============================
 qr = qrcode.QRCode(
-    version=5,  # Bigger version for better quality
-    error_correction=qrcode.constants.ERROR_CORRECT_H,
+    version=5,
+    error_correction=qrcode.constants.ERROR_CORRECT_H,  # High error correction for logo
     box_size=10,
     border=4,
 )
@@ -18,15 +22,15 @@ qr.make(fit=True)
 
 # Convert QR code to an image
 qr_image = qr.make_image(fill="black", back_color="white").convert("RGBA")
-
-# Get QR code size
 qr_width, qr_height = qr_image.size
 
-# Create a gradient background with Instagram colors
+# ============================
+# 🎨 Step 3: Apply Instagram Gradient to QR Code
+# ============================
 gradient = Image.new("RGBA", (qr_width, qr_height), (255, 255, 255, 255))
 draw = ImageDraw.Draw(gradient)
 
-# Define Instagram gradient colors
+# Instagram gradient colors
 colors = [
     (255, 195, 0),   # Yellow
     (255, 87, 34),   # Orange
@@ -38,25 +42,77 @@ colors = [
 # Apply gradient effect
 for y in range(qr_height):
     r, g, b = [
-        int(colors[0][i] * (1 - y/qr_height) + colors[-1][i] * (y/qr_height))
+        int(colors[0][i] * (1 - y / qr_height) + colors[-1][i] * (y / qr_height))
         for i in range(3)
     ]
     draw.line([(0, y), (qr_width, y)], fill=(r, g, b), width=1)
 
-# Combine QR code with gradient using transparency
+# Merge the gradient into the QR code
 qr_array = np.array(qr_image)
 gradient_array = np.array(gradient)
 
-# Make the black areas of the QR code transparent
 for y in range(qr_height):
     for x in range(qr_width):
         if qr_array[y, x, 0] < 128:  # If it's a black pixel
-            gradient_array[y, x] = (0, 0, 0, 255)  # Keep it black
-        else:
-            gradient_array[y, x, 3] = 0  # Make white pixels transparent
+            qr_array[y, x] = gradient_array[y, x]  # Apply gradient color
 
-# Convert back to an image and save
-final_qr = Image.fromarray(gradient_array)
-final_qr.save("instagram_qr_colored.png")
+final_qr = Image.fromarray(qr_array)
 
-print("QR code with Instagram colors generated and saved as 'instagram_qr_colored.png'.")
+# ============================
+# 🎭 Step 4: Create a Circular Instagram Logo
+# ============================
+logo_size = qr_width // 3  # Adjust logo size
+circle_mask = Image.new("L", (logo_size, logo_size), 0)
+mask_draw = ImageDraw.Draw(circle_mask)
+mask_draw.ellipse((0, 0, logo_size, logo_size), fill=255)  # Make it a perfect circle
+
+# Create circular logo with gradient
+logo = Image.new("RGBA", (logo_size, logo_size), (255, 255, 255, 0))
+draw = ImageDraw.Draw(logo)
+
+# Draw Instagram-style gradient background
+for y in range(logo_size):
+    r, g, b = [
+        int(colors[0][i] * (1 - y / logo_size) + colors[-1][i] * (y / logo_size))
+        for i in range(3)
+    ]
+    draw.line([(0, y), (logo_size, y)], fill=(r, g, b), width=1)
+
+# Apply circular mask to the entire logo
+logo.putalpha(circle_mask)
+
+# ============================
+# 📸 Step 5: Insert User Profile Picture (Inside the Circular Logo)
+# ============================
+user_img_path = "user_profile.jpg"  # Replace with actual image path
+
+try:
+    user_img = Image.open(user_img_path).convert("RGBA")
+    user_img = user_img.resize((logo_size - 20, logo_size - 20), Image.LANCZOS)
+
+    # Create a circular mask for the profile picture
+    user_mask = Image.new("L", (logo_size - 20, logo_size - 20), 0)
+    user_mask_draw = ImageDraw.Draw(user_mask)
+    user_mask_draw.ellipse((0, 0, logo_size - 20, logo_size - 20), fill=255)
+
+    # Apply circular mask to user image
+    user_img.putalpha(user_mask)
+
+    # Paste user image onto the logo (centered)
+    user_img_position = ((logo_size - user_img.width) // 2, (logo_size - user_img.height) // 2)
+    logo.paste(user_img, user_img_position, mask=user_img)
+
+except FileNotFoundError:
+    print("⚠️ User profile image not found! Using only Instagram logo.")
+
+# ============================
+# 🖼️ Step 6: Overlay Circular Logo on QR Code
+# ============================
+logo_position = ((qr_width - logo_size) // 2, (qr_height - logo_size) // 2)
+final_qr.paste(logo, logo_position, mask=logo)
+
+# Save the final QR code
+final_qr.save("instaQR.png")
+
+print("✅ QR code with circular Instagram logo and user image saved as 'instaQR.png'.")
+final_qr.show()  # Display the QR code
